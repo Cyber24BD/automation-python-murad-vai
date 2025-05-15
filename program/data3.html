@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Multi Config Form</title>
+  <style>
+    :root {
+      --primary-color: #007bff;
+      --secondary-color: #6c757d;
+      --bg-color: #f4f6f8;
+      --card-bg: #ffffff;
+      --text-color: #333;
+      --border-radius: 12px;
+      --transition-speed: 0.3s;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+
+    h1, h2 {
+      text-align: center;
+      color: var(--text-color);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    form {
+      background: var(--card-bg);
+      padding: 2rem;
+      border-radius: var(--border-radius);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      transition: box-shadow var(--transition-speed);
+    }
+
+    form:hover {
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    input, textarea, select {
+      padding: 0.75rem;
+      border-radius: var(--border-radius);
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      width: 100%;
+      transition: border-color var(--transition-speed);
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--primary-color);
+      outline: none;
+    }
+
+    button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 0.85rem;
+      font-size: 1rem;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: background var(--transition-speed);
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .error {
+      color: red;
+      font-size: 0.95rem;
+    }
+
+    .output {
+      background: var(--card-bg);
+      padding: 2rem;
+      border-radius: var(--border-radius);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      position: relative;
+    }
+
+    pre {
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 8px;
+      border-left: 4px solid var(--primary-color);
+      margin-top: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .counter {
+      font-weight: bold;
+      color: var(--secondary-color);
+    }
+
+    .copy-btn {
+      background-color: var(--secondary-color);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background var(--transition-speed);
+    }
+
+    .copy-btn:hover {
+      background-color: #5a6268;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Configuration Manager</h1>
+
+  <form id="configForm">
+    <input type="text" id="name" placeholder="Name" required />
+    <textarea id="description" placeholder="Description" rows="3" required></textarea>
+    <input type="number" id="price" placeholder="Price" required />
+
+    <input type="number" id="thLevel" placeholder="Town Hall Level" />
+    <input type="number" id="kingLevel" placeholder="King Level" />
+    <input type="number" id="queenLevel" placeholder="Queen Level" />
+    <input type="number" id="wardenLevel" placeholder="Warden Level" />
+    <input type="number" id="championLevel" placeholder="Champion Level" />
+
+    <input type="url" id="media1" placeholder="Media 1 URL (required)" required />
+    <input type="url" id="media2" placeholder="Media 2 URL (optional)" />
+    <input type="url" id="media3" placeholder="Media 3 URL (optional)" />
+
+    <div class="error" id="formError"></div>
+    <button type="submit">Add Entry</button>
+  </form>
+
+  <div class="output">
+    <div class="header-actions">
+      <h2>Current multi_config</h2>
+      <div>
+        <span class="counter" id="entryCount">Entries: 0</span>
+        <button class="copy-btn" onclick="copyToClipboard()">📋 Copy JSON</button>
+      </div>
+    </div>
+    <pre id="jsonOutput">[]</pre>
+  </div>
+</div>
+
+<script>
+  const multi_config = [];
+  const jsonOutput = document.getElementById('jsonOutput');
+  const entryCount = document.getElementById('entryCount');
+
+  function updateJsonOutput() {
+    jsonOutput.textContent = JSON.stringify(multi_config, null, 2);
+    entryCount.textContent = `Entries: ${multi_config.length}`;
+  }
+
+  function copyToClipboard() {
+    const range = document.createRange();
+    range.selectNode(jsonOutput);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    try {
+      document.execCommand('copy');
+      alert("JSON copied to clipboard!");
+    } catch (err) {
+      alert("Failed to copy JSON.");
+    } finally {
+      window.getSelection().removeAllRanges();
+    }
+  }
+
+  document.getElementById('configForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const errorDiv = document.getElementById('formError');
+    errorDiv.textContent = '';
+
+    const mediaUrls = [
+      { key: 'media1', value: document.getElementById('media1').value.trim() },
+      { key: 'media2', value: document.getElementById('media2').value.trim() },
+      { key: 'media3', value: document.getElementById('media3').value.trim() }
+    ];
+
+    // Validate at least one media exists
+    if (!mediaUrls.some(m => m.value)) {
+      errorDiv.textContent = 'At least one media URL is required.';
+      return;
+    }
+
+    const media = {};
+    mediaUrls.forEach(({ key, value }) => {
+      if (value) media[key] = value;
+    });
+
+    const entry = {
+      name: document.getElementById('name').value.trim(),
+      description: document.getElementById('description').value.trim(),
+      price: document.getElementById('price').value.trim(),
+      "Town Hall Level": document.getElementById('thLevel').value.trim(),
+      "King Level": document.getElementById('kingLevel').value.trim(),
+      "Queen Level": document.getElementById('queenLevel').value.trim(),
+      "Warden Level": document.getElementById('wardenLevel').value.trim(),
+      "Champion Level": document.getElementById('championLevel').value.trim(),
+      media
+    };
+
+    multi_config.push(entry);
+
+    // Clear form
+    this.reset();
+
+    // Update output
+    updateJsonOutput();
+  });
+
+  // Initial render
+  updateJsonOutput();
+</script>
+
+</body>
+</html>
