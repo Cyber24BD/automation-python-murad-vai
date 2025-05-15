@@ -1,6 +1,6 @@
 @echo off
 REM Run Python script using uv
-uv run test6.py
+uv run main.py
 
 REM Keep the window open to see the output
 if "%ERRORLEVEL%" NEQ "0" (
