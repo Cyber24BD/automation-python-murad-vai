@@ -6,12 +6,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException, ElementClickInterceptedException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, ElementClickInterceptedException
 from selenium.webdriver.common.keys import Keys
 import time
 from data import multi_config
-from config import after_post_sleep_timer, after_per_post_sleep_timer, account_url, delete_url
-
 
 
 class DropdownHandler:
@@ -449,337 +447,193 @@ class FormHandler:
 
 
 # URL constant
-FORM_URL = account_url
+FORM_URL = "https://www.g2g.com/offers/create?service_id=f6a1aba5-473a-4044-836a-8968bbab16d7&brand_id=lgc_game_19955&root_id=5830014a-b974-45c6-9672-b51e83112fb7&cat_id=5830014a-b974-45c6-9672-b51e83112fb7&cat_path=5830014a-b974-45c6-9672-b51e83112fb7&relation_id=98da2461-14bf-44bb-8e8d-011a4f06c187 "
 
 # Multiple dictionaries defined outside class
 
 
 
 
-def run_post_command(driver):
+# multi_config = [
+#     {
+#         "name": "TH 15",
+#         "description": "Best TH 15 base for sale",
+#         "price": "100",
+#         "Town Hall Level": "15",
+#         "King Level": "95",
+#         "Queen Level": "85",
+#         "Warden Level": "45",
+#         "Champion Level": "45",
+#         "media": {
+#             "media1": "https://imgur.com/a/9IEgqMn",
+#             "media2": "https://imgur.com/a/9IIoqMn",
+#             "media3": "https://imgur.com/a/9IIpqMn"
+#         }
+#     },
+#     {
+#         "name": "TH 16",
+#         "description": "TH 16 for sale with maxed out everything",
+#         "price": "200",
+#         "Town Hall Level": "16",
+#         "King Level": "85",
+#         "Queen Level": "75",
+#         "Warden Level": "75",
+#         "Champion Level": "45",
+#         "media": {
+#             "media1": "https://imgur.com/a/9IEIkMn",
+#             "media2": "https://imgur.com/a/9IEIlMn"
+#         }
+#     },
+#     {
+#         "name": "TH 17",
+#         "description": "TH 17 for sale with maxed out everything",
+#         "price": "300",
+#         "Town Hall Level": "17",
+#         "King Level": "55",
+#         "Queen Level": "85",
+#         "Warden Level": "60",
+#         "Champion Level": "40",
+#         "media": {
+#             "media1": "https://imgur.com/a/9IEIhMn",
+#             "media2": "https://imgur.com/a/9IEIdMn"
+#         }
+#     }
+# ]
 
-    form_handler = FormHandler(driver)
-    dropdown_handler = DropdownHandler(driver)
-    media_handler = MediaHandler(driver)
 
-    for config in multi_config:
-        print(f"\n🔄 Processing new configuration: {config['name']}")
-        driver.get(FORM_URL)
-        time.sleep(5)
-        
-        # Set hero levels
-        th_level = config["Town Hall Level"]
-        kl_level = config["King Level"]
-        ql_level = config["Queen Level"]
-        wl_level = config["Warden Level"]
-        cl_level = config["Champion Level"]
 
-        dropdown_handler.fill_form_based_on_dict(th_level, kl_level, ql_level, wl_level, cl_level)  # Wait for page load
 
-        # Set basic form fields
-        form_handler.set_title(config["name"])
-        form_handler.set_description(config["description"])
-        form_handler.set_price(config["price"])
-        form_handler.select_manual_delivery()
-        form_handler.set_delivery_speed()
-        time.sleep(1)   
-            
 
-        # Add media items
-        if "media" in config and isinstance(config["media"], dict):
-            media_handler.add_media_items(config["media"])
-        else:
-            print("⚠️ No media found in configuration or invalid media format")
-
-        # Click publish button
-        form_handler.click_publish_button()
-        time.sleep(3)  # Wait for submit action
-        
-        print("✅ Form submitted for this configuration.")
-        # open_new_tab_and_process_table(driver)
-        time.sleep(after_per_post_sleep_timer)
+def open_new_tab_and_process_table(driver):
     
+    # Get current window handles
+    original_handles = driver.window_handles
+    
+    # Open new tab using JavaScript
+    driver.execute_script("window.open('about:blank', '_blank');")
+    
+    
+    # Wait for new tab to open
+    wait = WebDriverWait(driver, 10)
+    wait.until(lambda d: len(d.window_handles) > len(original_handles))
+    
+    # Switch to new tab
+    new_window = [window for window in driver.window_handles if window not in original_handles][0]
+    driver.switch_to.window(new_window)
+    
+    # Navigate to URL
+    url = "https://www.g2g.com/offers/list?cat_id=5830014a-b974-45c6-9672-b51e83112fb7"
+    driver.get(url)
+    print("Navigated to G2G website")
 
-
-
-
-# Delete handler
-def delete_open_tab(driver):
+    # Wait for page to load
+    time.sleep(5)
 
     try:
-        # # Create a new tab using JavaScript
-        # driver.execute_script("window.open('');")
+        # Wait for the table to be present
+        wait = WebDriverWait(driver, 30)
+        table = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "table.q-table")))
         
-        # # Switch focus to the new tab
-        # driver.switch_to.window(driver.window_handles[-1])
-        
-        # Navigate to the target URL
-        driver.get(delete_url)
-        
-    except Exception as e:
-        print(f"An error occurred: {e}")
+        # Find all data rows (skip header)
+        rows = table.find_elements(By.TAG_NAME, "tr")[1:]
+        print(f"Found {len(rows)} data rows in the table")
 
+        target_rows = []
 
-def select_rows_with_title_starting_with_TH(driver):
-    print("\n🔄 Selecting rows with title starting with 'TH '")
-    """
-    Selects rows in a G2G table where the Title starts with 'TH '.
-    Clicks the checkbox in those rows.
-
-    Args:
-        driver (WebDriver): The Selenium WebDriver instance.
-    """
-    try:
-        # Wait for the table body to be present and visible
-        wait = WebDriverWait(driver, 10)
-        table_body = wait.until(
-            EC.presence_of_element_located((By.XPATH, "//div[@class='q-table__middle scroll']//table/tbody"))
-        )
-
-        time.sleep(2)
-
-        # Find all rows in the table body
-        rows = table_body.find_elements(By.TAG_NAME, "tr")
-
+        # Filter rows where Sale == 0 AND account name is "Clash Of Clans (Global)"
         for row in rows:
-            # Locate the title element (inside the second column)
-            title_element = row.find_element(By.XPATH, ".//td[2]//div[@class='text-body1']//span")
-            title_text = title_element.text.strip()
+            cells = row.find_elements(By.TAG_NAME, "td")
+            if len(cells) >= 6:
+                # Check if sales is 0
+                sale_cell = cells[5]
+                sale_text = sale_cell.text.strip()
+                
+                # Check account name
+                title_cell = cells[1]
+                account_name_element = title_cell.find_element(By.XPATH, ".//div[contains(@class, 'text-font-2nd') and contains(text(), 'Accounts -')]")
+                account_name_text = account_name_element.text.strip()
+                
+                # Extract just the account name part
+                if "Accounts -" in account_name_text:
+                    account_name = account_name_text.split("Accounts -")[1].strip()
+                    
+                    if sale_text == "0" and "Clash Of Clans (Global)" in account_name:
+                        target_rows.append(row)
 
-            # Check if the title starts with 'TH ' (TH followed by a space)
-            if title_text.startswith("TH "):
-                # Locate the checkbox (first column)
-                checkbox = row.find_element(By.XPATH, ".//td[1]//div[@role='checkbox']")
-                time.sleep(2)
+        if not target_rows:
+            print("No rows found matching criteria: Sale = 0 AND 'Clash Of Clans (Global)'")
+            # Close tab and return to original
+            driver.close()
+            driver.switch_to.window(original_handles[0])
+            return 0
 
-                # Scroll the checkbox into view (to avoid click issues)
-                driver.execute_script("arguments[0].scrollIntoView({ behavior: 'auto', block: 'center' });", checkbox)
+        # Select the last matching row
+        last_row = target_rows[-1]
+        print("Processing last matching row...")
 
-                time.sleep(2)
-
-                # Wait until the checkbox is clickable
-                wait.until(EC.element_to_be_clickable((By.XPATH, ".//td[1]//div[@role='checkbox']")))
-
-                time.sleep(2)
-
-                # Click the checkbox
-                checkbox.click()
-
-                time.sleep(2)
-
-
-    except Exception as e:
-        print(f"An error occurred while selecting rows: {e}")
-
-
-
-def confirm_delete_offer(driver, timeout=10):
-    """
-    Clicks the delete button in the footer and confirms the ensuing popup.
-
-    :param driver: Selenium WebDriver instance (already on the page with offers)
-    :param timeout: How many seconds to wait for elements (default: 10)
-    :raises TimeoutException: if either button isn't found/clickable in time
-    """
-    wait = WebDriverWait(driver, timeout)
-
-    try:
-        # 1) Click the trash/delete icon button
-        delete_btn = wait.until(EC.element_to_be_clickable((
-            By.CSS_SELECTOR,
-            "footer .q-btn.text-negative .material-icons"
-        )))
-        delete_btn.click()
-
-        # 2) Wait for the confirmation popup’s “Confirm” button
-        confirm_btn = wait.until(EC.element_to_be_clickable((
-            By.XPATH,
-            "//div[contains(@class,'q-pa-md')]//button[.//span[contains(.,'Confirm')]]"
-        )))
-        confirm_btn.click()
-
-        print("✅ Confirmed deletion")
-        return True
-
-    except TimeoutException as e:
-        print(f"Error confirming deletion: {e}")
-        return False
-
-
-
-
-def loop_page_and_delete_data(driver, operation_function=None, config_name=None):
-    """
-    Loops through all pages of pagination and performs an operation on each page.
-    
-    Args:
-        driver: Selenium WebDriver instance
-        operation_function: Function to perform on each page. If None, no operation is performed.
-                           The function should accept the driver as an argument.
-        config_name: Optional name of the configuration being processed, for better logging
-    
-    Returns:
-        The total number of pages processed
-    """
-
-
-
-    config_label = f" [{config_name}]" if config_name else ""
-    current_page = 1
-    total_pages_processed = 0
-    operation_performed = False
-    
-    try:
-        # Wait for pagination to load initially
+        # Scroll into view
+        driver.execute_script("arguments[0].scrollIntoView(true);", last_row)
         time.sleep(1)
-        
-        # First check if pagination exists at all
+
+        # Locate action cell (last td)
+        action_cell = last_row.find_element(By.CSS_SELECTOR, "td.q-px-sm.q-td.text-center")
+        more_button = action_cell.find_element(By.TAG_NAME, "button")
+
+        # Click more_vert button
         try:
-            pagination_exists = driver.find_element(By.CSS_SELECTOR, "div.q-pagination, ul.pagination, nav.pagination")
-        except NoSuchElementException:
-            # If no pagination exists, just perform the operation once on the current page
-            if operation_function:
-                print(f"🔄 Performing operation{config_label} (single page)")
-                operation_function(driver)
-                operation_performed = True
-            print(f"No pagination found. Processed single page.{config_label}")
-            return 1
-        
-        while True:
-            # Perform the operation on the current page if a function is provided
-            if operation_function and not (operation_performed and current_page == 1):
-                print(f"🔄 Performing operation on page {current_page}{config_label}")
-                operation_function(driver)
-                operation_performed = True
-            
-            total_pages_processed += 1
-            
-            # Wait a moment for any operations to complete
-            time.sleep(1)
-            
-            # Find all pagination elements to determine if there are more pages
-            try:
-                # Try to find the next button (typically shows as ">" or "›")
-                next_button = WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located((By.XPATH, "//button[text()='>']"))
-                )
-            except:
-                try:
-                    # Alternative selector if text is not directly in the button
-                    next_button = driver.find_element(By.CSS_SELECTOR, "button[aria-label='Next Page'], button.pagination-next")
-                except:
-                    try:
-                        # Another alternative - look for any button with ">" or "›" character
-                        next_button = driver.find_element(By.XPATH, "//button[contains(text(), '>') or contains(text(), '›')]")
-                    except:
-                        try:
-                            # Find by position in the pagination container (last button)
-                            pagination_container = driver.find_element(By.CSS_SELECTOR, "div.q-pagination, ul.pagination, nav.pagination")
-                            buttons = pagination_container.find_elements(By.TAG_NAME, "button")
-                            # Last button in pagination is typically the "Next" button
-                            if len(buttons) > 1:
-                                next_button = buttons[-1]
-                            else:
-                                print(f"No next button found. This appears to be the last page ({current_page}).{config_label}")
-                                break
-                        except:
-                            print(f"Could not locate pagination controls. Stopping after page {current_page}.{config_label}")
-                            break
-            
-            # Check if the next button is disabled or if we're on the last page
-            try:
-                is_disabled = next_button.get_attribute("disabled") == "true" or \
-                              next_button.get_attribute("aria-disabled") == "true" or \
-                              "disabled" in (next_button.get_attribute("class") or "") or \
-                              not next_button.is_enabled()
-                
-                if is_disabled:
-                    print(f"Next button is disabled. Reached the last page ({current_page}).{config_label}")
-                    break
-                
-                # If we're here, the next button is clickable
-                # Try to click the next button
-                try:
-                    # Scroll the button into view
-                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", next_button)
-                    time.sleep(0.5)  # Give it a moment to scroll
-                    
-                    # Try regular click
-                    next_button.click()
-                except ElementClickInterceptedException:
-                    # If regular click fails, try JavaScript click
-                    driver.execute_script("arguments[0].click();", next_button)
-                    
-                print(f"Navigated to page {current_page + 1}{config_label}")
-                current_page += 1
-                
-                # Wait for the page to update
-                time.sleep(2)
-                
-            except Exception as e:
-                print(f"Error checking or clicking next button: {str(e)}{config_label}")
-                print(f"Assuming this is the last page ({current_page}).{config_label}")
-                break
-    
-    except Exception as e:
-        print(f"Unexpected error in pagination loop: {str(e)}{config_label}")
-
-    # Close the current tab
-    print("\n🔄 Close Tab")
-
-
-    
-    print(f"Pagination loop completed. Processed {total_pages_processed} pages in total.{config_label}")
-    return total_pages_processed
-
-
-
-
-def delete_complete_operation(driver):
-    """
-    Performs the operation of selecting rows and deleting data.
-    This fixed version doesn't recursively call loop_page_and_delete_data.
-    """
-    print("\n🔄 Select Rows")
-
-    while True:
-        try:
-            time.sleep(2)
-            select_rows_with_title_starting_with_TH(driver)
-        except Exception as e:
-            print(f"Error selecting rows: {str(e)}")
-            pass
-
+            more_button.click()
+            print("Clicked more_vert button")
+        except ElementClickInterceptedException:
+            driver.execute_script("arguments[0].click();", more_button)
+            print("Forced click on more_vert button")
         time.sleep(2)
 
-        print("\n🔄 Delete Data")
-
+        # Click Remove from dropdown
+        # Wait for dropdown to appear
         try:
-            delet_data = confirm_delete_offer(driver)
-            if delet_data:
-                continue
-            else:
-                break
-        except:
-            print(f"Error in delete operation.")
-            time.sleep(2)
+            remove_option = wait.until(EC.visibility_of_element_located((By.XPATH,
+                "//div[contains(@class, 'q-menu')]//div[contains(@class, 'q-item') and contains(., 'Remove')]")))
             
+            # Try regular click first
+            remove_option.click()
+        except Exception as e:
+            print("Normal click failed, trying JavaScript click...")
+            driver.execute_script("arguments[0].click();", remove_option)
+        print("Clicked Remove option")
+        time.sleep(2)
 
-        
+        # Click Confirm in the modal
+        confirm_button = wait.until(EC.element_to_be_clickable((By.XPATH,
+            "//button[contains(@class, 'g-btn-min') and contains(., 'Confirm')]")))
+        confirm_button.click()
+        print("Clicked Confirm")
+        time.sleep(4)
+
+        print("Successfully deleted the selected item.")
+        processed_count = 1
+
+        # Close tab and return to original
+        driver.close()
+        driver.switch_to.window(original_handles[0])
+        print("Closed new tab and returned to original window")
+
+        return processed_count
+
+    except Exception as e:
+        print(f"Error processing table: {str(e)}")
+        driver.save_screenshot("table_error.png")
+
+        # Attempt cleanup
+        try:
+            driver.close()
+            driver.switch_to.window(original_handles[0])
+            print("Closed tab after error and returned to original window")
+        except Exception as close_error:
+            print(f"Error closing tab: {str(close_error)}")
+
+        return 0
 
 
-
-
-
-# Main function to handle pagination and operations
-def process_data_with_pagination(driver):
-    """
-    Main function to process all pages of data with proper pagination.
-    This is what you should call from your main script.
-    """
-    # Now use loop_page_and_delete_data with our fixed delete_operation function
-    return loop_page_and_delete_data(driver, delete_complete_operation)
-       
 
 
 def main():
@@ -792,29 +646,53 @@ def main():
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
-    
+    form_handler = FormHandler(driver)
+    dropdown_handler = DropdownHandler(driver)
+    media_handler = MediaHandler(driver)
 
     while True:
+        for config in multi_config:
+            print(f"\n🔄 Processing new configuration: {config['name']}")
+            driver.get(FORM_URL)
+            time.sleep(5)
+            
+            # Set hero levels
+            th_level = config["Town Hall Level"]
+            kl_level = config["King Level"]
+            ql_level = config["Queen Level"]
+            wl_level = config["Warden Level"]
+            cl_level = config["Champion Level"]
 
-        print("\n🔄 Start Working")
-        run_post_command(driver)
+            dropdown_handler.fill_form_based_on_dict(th_level, kl_level, ql_level, wl_level, cl_level)  # Wait for page load
 
-        print("\n🕒 Start Interval Time")
-        time.sleep(after_post_sleep_timer)
-        print("\n🕒 Stop Interval Time")
+            
 
-        print("\n🔄 Tab Open")
-        delete_open_tab(driver)
-        time.sleep(3)
+            # Set basic form fields
+            form_handler.set_title(config["name"])
+            form_handler.set_description(config["description"])
+            form_handler.set_price(config["price"])
+            form_handler.select_manual_delivery()
+            form_handler.set_delivery_speed()
+            time.sleep(1)   
+            
 
-        process_data_with_pagination(driver)
-        time.sleep(3)
+            # Add media items
+            if "media" in config and isinstance(config["media"], dict):
+                media_handler.add_media_items(config["media"])
+            else:
+                print("⚠️ No media found in configuration or invalid media format")
 
+            
+            # Click publish button
+            form_handler.click_publish_button()
+            time.sleep(3)  # Wait for submit action
+            
+            print("✅ Form submitted for this configuration.")
+            open_new_tab_and_process_table(driver)
+            time.sleep(1)
 
-        print("\n🎉 All configurations processed successfully!")
-
-
-
+    print("\n🎉 All configurations processed successfully!")
+    print("\n🎉 Table Data Deleted successfully!")
     input("Press Enter to close browser...")
     
 
