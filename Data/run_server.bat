@@ -9,11 +9,11 @@ rem -------------------------------------------------------------
 setlocal ENABLEDELAYEDEXPANSION
 
 :: Attempt to activate virtual environment
-if exist .venv\Scripts\activate.bat (
+if exist venv\Scripts\activate.bat (
     echo Activating virtual environment...
-    call .venv\Scripts\activate.bat
+    call venv\Scripts\activate.bat
 ) else (
-    echo Virtual environment .venv not found. Running with system Python.
+    echo Virtual environment venv not found. Running with system Python.
 )
 
 :: Module path to your FastAPI application

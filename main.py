@@ -530,9 +530,9 @@ def test_connection_main(driver):
 
 def run_post_command(driver):
     # Reload the data module to get the latest changes
-    import data
-    importlib.reload(data)
-    from data import multi_config
+    import server_data
+    importlib.reload(server_data)
+    from server_data import multi_config
 
     form_handler = FormHandler(driver)
     dropdown_handler = DropdownHandler(driver)
