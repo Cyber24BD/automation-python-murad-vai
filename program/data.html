@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Multi Config Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 2rem;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    form {
+      max-width: 600px;
+      margin: 0 auto 2rem;
+      padding: 1.5rem;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    input, textarea, select {
+      padding: 0.5rem;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 0.75rem;
+      font-size: 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .output {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    pre {
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Add Configuration</h1>
+
+<form id="configForm">
+  <input type="text" id="name" placeholder="Name" required />
+  <textarea id="description" placeholder="Description" rows="3" required></textarea>
+  <input type="number" id="price" placeholder="Price" required />
+  
+  <input type="number" id="thLevel" placeholder="Town Hall Level" required />
+  <input type="number" id="kingLevel" placeholder="King Level" required />
+  <input type="number" id="queenLevel" placeholder="Queen Level" required />
+  <input type="number" id="wardenLevel" placeholder="Warden Level" required />
+  <input type="number" id="championLevel" placeholder="Champion Level" required />
+
+  <input type="url" id="media1" placeholder="Media 1 URL" required />
+  <input type="url" id="media2" placeholder="Media 2 URL" required />
+  <input type="url" id="media3" placeholder="Media 3 URL" required />
+
+  <button type="submit">Add Entry</button>
+</form>
+
+<div class="output">
+  <h2>Current multi_config:</h2>
+  <pre id="jsonOutput">[]</pre>
+</div>
+
+<script>
+  const multi_config = [];
+
+  document.getElementById('configForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const entry = {
+      name: document.getElementById('name').value.trim(),
+      description: document.getElementById('description').value.trim(),
+      price: document.getElementById('price').value.trim(),
+      "Town Hall Level": document.getElementById('thLevel').value.trim(),
+      "King Level": document.getElementById('kingLevel').value.trim(),
+      "Queen Level": document.getElementById('queenLevel').value.trim(),
+      "Warden Level": document.getElementById('wardenLevel').value.trim(),
+      "Champion Level": document.getElementById('championLevel').value.trim(),
+      media: {
+        media1: document.getElementById('media1').value.trim(),
+        media2: document.getElementById('media2').value.trim(),
+        media3: document.getElementById('media3').value.trim()
+      }
+    };
+
+    multi_config.push(entry);
+
+    // Clear form
+    this.reset();
+
+    // Update output
+    document.getElementById('jsonOutput').textContent = JSON.stringify(multi_config, null, 2);
+  });
+</script>
+
+</body>
+</html>

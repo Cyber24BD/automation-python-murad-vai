@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Multi Config Manager</title>
+  <style>
+    :root {
+      --primary: #007bff;
+      --secondary: #6c757d;
+      --bg-light: #f4f6f8;
+      --bg-dark: #212529;
+      --text-light: #333;
+      --text-dark: #fff;
+      --card-bg: #ffffff;
+      --border-radius: 10px;
+      --transition: all 0.3s ease-in-out;
+    }
+
+    body.dark {
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
+    }
+
+    body.dark .card {
+      background-color: #2b2f33;
+    }
+
+    body.dark input,
+    body.dark textarea,
+    body.dark select {
+      background: #1e2226;
+      color: white;
+      border-color: #444;
+    }
+
+    body.dark .copy-btn,
+    body.dark .export-btn,
+    body.dark .import-btn {
+      background-color: #444;
+    }
+
+    body.dark .copy-btn:hover,
+    body.dark .export-btn:hover,
+    body.dark .import-btn:hover {
+      background-color: #555;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--bg-light);
+      color: var(--text-light);
+      padding: 2rem;
+    }
+
+    h1, h2 {
+      text-align: center;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      padding: 0.75rem 1.5rem;
+      background: var(--primary);
+      color: white;
+      cursor: pointer;
+      border-radius: var(--border-radius);
+      transition: var(--transition);
+    }
+
+    .tab.active {
+      background: #0056b3;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      padding: 2rem;
+      border-radius: var(--border-radius);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      margin-bottom: 2rem;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    input, textarea, select {
+      padding: 0.75rem;
+      border-radius: var(--border-radius);
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      width: 100%;
+    }
+
+    button {
+      background: var(--primary);
+      color: white;
+      padding: 0.75rem;
+      border: none;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    .error {
+      color: red;
+      font-size: 0.9rem;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    .output pre {
+      background: #f1f3f5;
+      padding: 1rem;
+      border-left: 4px solid var(--primary);
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .copy-btn, .export-btn, .import-btn {
+      background: var(--secondary);
+      color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+    }
+
+    .counter {
+      font-weight: bold;
+    }
+
+    .entry-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .entry-card {
+      padding: 1rem;
+      border: 1px solid #ddd;
+      border-radius: var(--border-radius);
+      position: relative;
+    }
+
+    .entry-actions {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-sm {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.85rem;
+    }
+
+    .search {
+      margin-bottom: 1rem;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: #e9ecef;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      width: 0%;
+      transition: width 0.5s ease-in-out;
+    }
+
+    .toggle-mode {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      background: var(--primary);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🚀 Multi Config Manager</h1>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="form">📝 Add Entry</div>
+    <div class="tab" data-tab="preview">📊 Preview</div>
+    <div class="tab" data-tab="json">📄 JSON</div>
+  </div>
+
+  <!-- Tab Sections -->
+  <div id="form" class="section active">
+    <div class="card">
+      <form id="configForm">
+        <input type="text" id="name" placeholder="Name" required />
+        <textarea id="description" placeholder="Description" rows="3" required></textarea>
+        <input type="number" id="price" placeholder="Price" required />
+
+        <input type="number" id="thLevel" placeholder="Town Hall Level" />
+        <input type="number" id="kingLevel" placeholder="King Level" />
+        <input type="number" id="queenLevel" placeholder="Queen Level" />
+        <input type="number" id="wardenLevel" placeholder="Warden Level" />
+        <input type="number" id="championLevel" placeholder="Champion Level" />
+
+        <input type="url" id="media1" placeholder="Media 1 URL (required)" required />
+        <input type="url" id="media2" placeholder="Media 2 URL (optional)" />
+        <input type="url" id="media3" placeholder="Media 3 URL (optional)" />
+
+        <div class="error" id="formError"></div>
+        <button type="submit">Add Entry</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="preview" class="section">
+    <div class="card">
+      <h2>📋 Added Entries</h2>
+      <input type="text" class="search" placeholder="🔍 Search by name..." oninput="filterEntries(this.value)">
+      <div class="entry-list" id="entryList"></div>
+    </div>
+  </div>
+
+  <div id="json" class="section">
+    <div class="card output">
+      <h2>📄 Current multi_config</h2>
+      <div class="actions">
+        <span class="counter" id="entryCount">Entries: 0</span>
+        <div>
+          <button class="copy-btn" onclick="copyToClipboard()">📋 Copy</button>
+          <button class="export-btn" onclick="exportJson()">⬇️ Export</button>
+          <button class="import-btn" onclick="document.getElementById('fileInput').click()">⬆️ Import</button>
+          <input type="file" id="fileInput" accept=".json" onchange="importJson(event)" hidden />
+        </div>
+      </div>
+      <pre id="jsonOutput">[]</pre>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+  </div>
+
+  <button class="toggle-mode" onclick="toggleMode()">🌙 Toggle Dark Mode</button>
+</div>
+
+<script>
+  const multi_config = [];
+  const jsonOutput = document.getElementById('jsonOutput');
+  const entryCount = document.getElementById('entryCount');
+  const entryList = document.getElementById('entryList');
+  const progressFill = document.getElementById('progressFill');
+
+  function updateJsonOutput() {
+    jsonOutput.textContent = JSON.stringify(multi_config, null, 2);
+    entryCount.textContent = `Entries: ${multi_config.length}`;
+    progressFill.style.width = `${Math.min(100, multi_config.length * 5)}%`;
+    renderEntryList();
+  }
+
+  function copyToClipboard() {
+    const range = document.createRange();
+    range.selectNode(jsonOutput);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    try {
+      document.execCommand('copy');
+      alert("✅ JSON copied to clipboard!");
+    } catch (err) {
+      alert("❌ Failed to copy.");
+    } finally {
+      window.getSelection().removeAllRanges();
+    }
+  }
+
+  function exportJson() {
+    const blob = new Blob([JSON.stringify(multi_config, null, 2)], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "multi_config.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importJson(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      try {
+        const imported = JSON.parse(evt.target.result);
+        if (Array.isArray(imported)) {
+          multi_config.splice(0, multi_config.length, ...imported);
+          updateJsonOutput();
+          alert("✅ Imported successfully!");
+        } else {
+          alert("❌ Invalid format.");
+        }
+      } catch (err) {
+        alert("❌ Invalid JSON file.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function filterEntries(query) {
+    const filtered = multi_config.filter(e => e.name.toLowerCase().includes(query.toLowerCase()));
+    entryList.innerHTML = '';
+    filtered.forEach((entry, index) => {
+      const div = document.createElement('div');
+      div.className = 'entry-card';
+      div.innerHTML = `
+        <strong>${entry.name}</strong><br>
+        Price: ${entry.price}, TH: ${entry["Town Hall Level"]}
+        <div class="entry-actions">
+          <button class="btn-sm" onclick="editEntry(${index})">✏️</button>
+          <button class="btn-sm" onclick="deleteEntry(${index})">🗑️</button>
+        </div>
+      `;
+      entryList.appendChild(div);
+    });
+  }
+
+  function deleteEntry(index) {
+    if (confirm("Are you sure?")) {
+      multi_config.splice(index, 1);
+      updateJsonOutput();
+    }
+  }
+
+  function editEntry(index) {
+    const entry = multi_config[index];
+    document.getElementById('name').value = entry.name;
+    document.getElementById('description').value = entry.description;
+    document.getElementById('price').value = entry.price;
+    document.getElementById('thLevel').value = entry["Town Hall Level"];
+    document.getElementById('kingLevel').value = entry["King Level"];
+    document.getElementById('queenLevel').value = entry["Queen Level"];
+    document.getElementById('wardenLevel').value = entry["Warden Level"];
+    document.getElementById('championLevel').value = entry["Champion Level"];
+    document.getElementById('media1').value = entry.media.media1 || '';
+    document.getElementById('media2').value = entry.media.media2 || '';
+    document.getElementById('media3').value = entry.media.media3 || '';
+    multi_config.splice(index, 1); // remove old
+    switchTab('form');
+    updateJsonOutput();
+  }
+
+  function renderEntryList() {
+    entryList.innerHTML = '';
+    multi_config.forEach((entry, index) => {
+      const div = document.createElement('div');
+      div.className = 'entry-card';
+      div.innerHTML = `
+        <strong>${entry.name}</strong><br>
+        Price: ${entry.price}, TH: ${entry["Town Hall Level"]}
+        <div class="entry-actions">
+          <button class="btn-sm" onclick="editEntry(${index})">✏️</button>
+          <button class="btn-sm" onclick="deleteEntry(${index})">🗑️</button>
+        </div>
+      `;
+      entryList.appendChild(div);
+    });
+  }
+
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+  }
+
+  function toggleMode() {
+    document.body.classList.toggle('dark');
+  }
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+  });
+
+  document.getElementById('configForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const errorDiv = document.getElementById('formError');
+    errorDiv.textContent = '';
+
+    const mediaUrls = [
+      { key: 'media1', value: document.getElementById('media1').value.trim() },
+      { key: 'media2', value: document.getElementById('media2').value.trim() },
+      { key: 'media3', value: document.getElementById('media3').value.trim() }
+    ];
+
+    if (!mediaUrls.some(m => m.value)) {
+      errorDiv.textContent = 'At least one media URL is required.';
+      return;
+    }
+
+    const media = {};
+    mediaUrls.forEach(({ key, value }) => {
+      if (value) media[key] = value;
+    });
+
+    const entry = {
+      name: document.getElementById('name').value.trim(),
+      description: document.getElementById('description').value.trim(),
+      price: document.getElementById('price').value.trim(),
+      "Town Hall Level": document.getElementById('thLevel').value.trim(),
+      "King Level": document.getElementById('kingLevel').value.trim(),
+      "Queen Level": document.getElementById('queenLevel').value.trim(),
+      "Warden Level": document.getElementById('wardenLevel').value.trim(),
+      "Champion Level": document.getElementById('championLevel').value.trim(),
+      media
+    };
+
+    multi_config.push(entry);
+
+    this.reset();
+    updateJsonOutput();
+  });
+
+  updateJsonOutput();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+multi_config = [
+    {
+        "name": "𝗧𝗵 𝟭𝟱 𝗧𝗢𝗣 𝗠𝗔𝗫 ➤ 𝗠𝗔𝗫𝗘𝗗 𝗘𝗤𝗨𝗜𝗣𝗠𝗘𝗡𝗧, 𝗗𝗘𝗙𝗘𝗡𝗖𝗘 & 𝗔𝗥𝗠𝗬 ➤ 𝗛𝗘𝗥𝗢𝗦 𝟵𝟬-𝟵𝟬-𝟲𝟱-𝟯𝟯 ➤ 𝗙𝗨𝗟𝗟 𝗔𝗖𝗖𝗘𝗦𝗦 ➤ 𝗟𝗜𝗠𝗜𝗧𝗘𝗗 𝗦𝗧𝗢𝗖𝗞",
+        "description": "We do business honestly, we know that everyone buys accounts with their hard-earned money, that's why we always guarantee the account, if there is any problem with the account, I will solve it, if not solved, I will give a replacement account or a 100% refund, thank you.",
+        "price": "67",
+        "Town Hall Level": "15",
+        "King Level": "90",
+        "Queen Level": "90",
+        "Warden Level": "60",
+        "Champion Level": "40",
+        "media": {
+            "media1": "https://dl.dropboxusercontent.com/scl/fi/qd2adrjvp8slxa8325h0r/InCollage_20250421_175545791.jpg?rlkey=65lwmx29xr3r2t9mjn67tapk3&st=zp8y1cvx&dl=0"
+        }
+    }
+]
+
+dont_delet = ['#G1747138520628NK', '#G1747138520628NK']
