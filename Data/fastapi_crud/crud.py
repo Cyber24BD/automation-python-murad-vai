@@ -10,9 +10,6 @@ def get_items(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Item).offset(skip).limit(limit).all()
 
 def create_item(db: Session, item: schemas.ItemCreate):
-    # This function correctly handles the creation of a new item,
-    # ensuring that the separate media URL fields are combined
-    # into a single JSON object for the database.
     media_dict = {
         "media1": item.media1,
         "media2": item.media2,
@@ -28,7 +25,6 @@ def create_item(db: Session, item: schemas.ItemCreate):
         queen_level=item.queen_level,
         warden_level=item.warden_level,
         champion_level=item.champion_level,
-        # We filter out any None values from the media dict before saving
         media={k: v for k, v in media_dict.items() if v is not None}
     )
     
@@ -41,20 +37,24 @@ def update_item(db: Session, item_id: int, item: schemas.ItemCreate):
     db_item = get_item(db, item_id)
     if db_item:
         update_data = item.dict(exclude_unset=True)
+        
+        for key, value in update_data.items():
+            setattr(db_item, key, value)
+        
         media_dict = {
-            "media1": update_data.get("media1"),
-            "media2": update_data.get("media2"),
-            "media3": update_data.get("media3"),
+            "media1": item.media1,
+            "media2": item.media2,
+            "media3": item.media3
         }
-        db_item.name = update_data.get("name")
-        db_item.description = update_data.get("description")
-        db_item.price = update_data.get("price")
-        db_item.town_hall_level = update_data.get("town_hall_level")
-        db_item.king_level = update_data.get("king_level")
-        db_item.queen_level = update_data.get("queen_level")
-        db_item.warden_level = update_data.get("warden_level")
-        db_item.champion_level = update_data.get("champion_level")
-        db_item.media = {k: v for k, v in media_dict.items() if v is not None}
+        
+        # Filter out None values from media_dict and update db_item.media
+        updated_media = {k: v for k, v in media_dict.items() if v is not None}
+        if updated_media:
+            if db_item.media:
+                db_item.media.update(updated_media)
+            else:
+                db_item.media = updated_media
+
         db.commit()
         db.refresh(db_item)
     return db_item
@@ -65,6 +65,10 @@ def delete_item(db: Session, item_id: int):
         db.delete(db_item)
         db.commit()
     return db_item
+
+def delete_all_items(db: Session):
+    db.query(models.Item).delete()
+    db.commit()
 
 
 

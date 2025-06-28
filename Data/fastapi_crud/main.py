@@ -1,12 +1,11 @@
-from fastapi import FastAPI, Request, Depends, Form, HTTPException, UploadFile, File
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi import FastAPI, Request, Depends, Form, HTTPException, UploadFile, File, status
+from fastapi.responses import JSONResponse, StreamingResponse, RedirectResponse
 import io
 import csv
 import json
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 from typing import List, Optional
-from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -222,69 +221,156 @@ def get_all_items_as_json(db: Session = Depends(get_db)):
 
 @app.post("/add")
 def add_item(
+    request: Request,
     db: Session = Depends(get_db),
     name: str = Form(...),
     description: str = Form(...),
     price: str = Form(...),
-    town_hall_level: str = Form(..., alias="Town Hall Level"),
-    king_level: str = Form(..., alias="King Level"),
-    queen_level: str = Form(..., alias="Queen Level"),
-    warden_level: str = Form(..., alias="Warden Level"),
-    champion_level: str = Form(..., alias="Champion Level"),
+    town_hall_level: str = Form(...),
+    king_level: str = Form(...),
+    queen_level: str = Form(...),
+    warden_level: str = Form(...),
+    champion_level: str = Form(...),
     media1: str = Form(...),
     media2: Optional[str] = Form(None),
     media3: Optional[str] = Form(None),
 ):
-    item = schemas.ItemCreate(
-        name=name,
-        description=description,
-        price=price,
-        town_hall_level=town_hall_level,
-        king_level=king_level,
-        queen_level=queen_level,
-        warden_level=warden_level,
-        champion_level=champion_level,
-        media1=media1,
-        media2=media2,
-        media3=media3,
-    )
-    crud.create_item(db=db, item=item)
-    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+    try:
+        item = schemas.ItemCreate(
+            name=name,
+            description=description,
+            price=price,
+            town_hall_level=town_hall_level,
+            king_level=king_level,
+            queen_level=queen_level,
+            warden_level=warden_level,
+            champion_level=champion_level,
+            media1=media1,
+            media2=media2,
+            media3=media3,
+        )
+        created_item = crud.create_item(db=db, item=item)
+        
+        # Check if request is AJAX (has specific headers)
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
+            return JSONResponse(content={
+                "success": True, 
+                "message": "Item added successfully!",
+                "item": {
+                    "id": created_item.id,
+                    "name": created_item.name,
+                    "description": created_item.description,
+                    "price": created_item.price,
+                    "town_hall_level": created_item.town_hall_level
+                }
+            })
+        else:
+            return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+            
+    except Exception as e:
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": f"Error adding item: {str(e)}"}
+            )
+        else:
+            raise HTTPException(status_code=400, detail=f"Error adding item: {str(e)}")
 
 @app.post("/update/{item_id}")
 def update_item_data(
     item_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     name: str = Form(...),
     description: str = Form(...),
     price: str = Form(...),
-    town_hall_level: str = Form(..., alias="Town Hall Level"),
-    king_level: str = Form(..., alias="King Level"),
-    queen_level: str = Form(..., alias="Queen Level"),
-    warden_level: str = Form(..., alias="Warden Level"),
-    champion_level: str = Form(..., alias="Champion Level"),
+    town_hall_level: str = Form(...),
+    king_level: str = Form(...),
+    queen_level: str = Form(...),
+    warden_level: str = Form(...),
+    champion_level: str = Form(...),
     media1: str = Form(...),
     media2: Optional[str] = Form(None),
     media3: Optional[str] = Form(None),
 ):
-    item_data = schemas.ItemCreate(
-        name=name,
-        description=description,
-        price=price,
-        town_hall_level=town_hall_level,
-        king_level=king_level,
-        queen_level=queen_level,
-        warden_level=warden_level,
-        champion_level=champion_level,
-        media1=media1,
-        media2=media2,
-        media3=media3,
-    )
-    updated_item = crud.update_item(db=db, item_id=item_id, item=item_data)
-    return updated_item
+    try:
+        item_data = schemas.ItemCreate(
+            name=name,
+            description=description,
+            price=price,
+            town_hall_level=town_hall_level,
+            king_level=king_level,
+            queen_level=queen_level,
+            warden_level=warden_level,
+            champion_level=champion_level,
+            media1=media1,
+            media2=media2,
+            media3=media3,
+        )
+        updated_item = crud.update_item(db=db, item_id=item_id, item=item_data)
+        
+        if not updated_item:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "message": "Item not found"}
+            )
+        
+        return JSONResponse(content={
+            "success": True,
+            "message": "Item updated successfully!",
+            "id": updated_item.id,
+            "name": updated_item.name,
+            "description": updated_item.description,
+            "price": updated_item.price,
+            "town_hall_level": updated_item.town_hall_level
+        })
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": f"Error updating item: {str(e)}"}
+        )
 
 
 @app.post("/delete/{item_id}")
-def delete_item_data(item_id: int, db: Session = Depends(get_db)):
-    crud.delete_item(db, item_id=item_id)
-    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+def delete_item_data(item_id: int, request: Request, db: Session = Depends(get_db)):
+    try:
+        deleted_item = crud.delete_item(db, item_id=item_id)
+        
+        if not deleted_item:
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
+                return JSONResponse(
+                    status_code=404,
+                    content={"success": False, "message": "Item not found"}
+                )
+            else:
+                raise HTTPException(status_code=404, detail="Item not found")
+        
+        # Check if request is AJAX
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
+            return JSONResponse(content={
+                "success": True,
+                "message": "Item deleted successfully!"
+            })
+        else:
+            return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+            
+    except Exception as e:
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": f"Error deleting item: {str(e)}"}
+            )
+        else:
+            raise HTTPException(status_code=400, detail=f"Error deleting item: {str(e)}")
+
+@app.post("/delete-all")
+def delete_all_items_data(db: Session = Depends(get_db)):
+    try:
+        crud.delete_all_items(db)
+        return JSONResponse(content={"success": True, "message": "All items deleted successfully!"})
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"Error deleting all items: {str(e)}"}
+        )

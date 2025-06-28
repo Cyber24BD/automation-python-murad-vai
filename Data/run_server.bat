@@ -32,6 +32,6 @@ if %ERRORLEVEL%==0 (
 )
 
 echo Starting server on port %PORT% . . .
-python -m uvicorn %APP_MODULE% --host 0.0.0.0 --port %PORT%
+python -m uvicorn %APP_MODULE% --host 127.0.0.1 --port %PORT%
 
 pause
