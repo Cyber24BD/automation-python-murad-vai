@@ -2,7 +2,7 @@ import requests
 
 def fetch_data_from_server():
     # Replace this URL with your actual localhost server URL and port
-    url = "http://localhost:8510/json"  # Update the port and endpoint as needed
+    url = "http://localhost:8510/json"  # Update the port and endpoint as needed most
     
     try:
         response = requests.get(url)
