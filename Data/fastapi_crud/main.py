@@ -30,9 +30,22 @@ def get_db():
 
 @app.get("/")
 def read_root(request: Request, db: Session = Depends(get_db)):
-    items = crud.get_items(db)
     stats = crud.get_dashboard_stats(db)
-    return templates.TemplateResponse("index.html", {"request": request, "items": items, "stats": stats})
+    return templates.TemplateResponse("index.html", {"request": request, "stats": stats})
+
+@app.get("/api/items")
+def get_items(request: Request, db: Session = Depends(get_db), page: int = 1, page_size: int = 20):
+    skip = (page - 1) * page_size
+    items = crud.get_items(db, skip=skip, limit=page_size)
+    total_items = crud.get_items_count(db)
+    return {"items": items, "total_items": total_items}
+
+@app.get("/api/search")
+def search_items(request: Request, db: Session = Depends(get_db), query: str = "", page: int = 1, page_size: int = 20):
+    skip = (page - 1) * page_size
+    items = crud.search_items(db, query=query, skip=skip, limit=page_size)
+    total_items = crud.search_items_count(db, query=query)
+    return {"items": items, "total_items": total_items}
 
 @app.get("/up-down-data")
 def up_down_data_page(request: Request):

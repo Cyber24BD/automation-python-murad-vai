@@ -1,13 +1,34 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, or_
 from typing import List
 from . import models, schemas
 
 def get_item(db: Session, item_id: int):
     return db.query(models.Item).filter(models.Item.id == item_id).first()
 
-def get_items(db: Session, skip: int = 0, limit: int = 100):
+def get_items(db: Session, skip: int = 0, limit: int = 20):
     return db.query(models.Item).offset(skip).limit(limit).all()
+
+def get_items_count(db: Session):
+    return db.query(models.Item).count()
+
+def search_items(db: Session, query: str, skip: int = 0, limit: int = 20):
+    search_query = f"%{query}%"
+    return db.query(models.Item).filter(
+        or_(
+            models.Item.name.ilike(search_query),
+            models.Item.description.ilike(search_query)
+        )
+    ).offset(skip).limit(limit).all()
+
+def search_items_count(db: Session, query: str):
+    search_query = f"%{query}%"
+    return db.query(models.Item).filter(
+        or_(
+            models.Item.name.ilike(search_query),
+            models.Item.description.ilike(search_query)
+        )
+    ).count()
 
 def create_item(db: Session, item: schemas.ItemCreate):
     media_dict = {

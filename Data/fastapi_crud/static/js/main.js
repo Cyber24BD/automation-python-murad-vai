@@ -1,190 +1,182 @@
+let currentPage = 1;
+const pageSize = 20;
+let currentSearchQuery = '';
+
 document.addEventListener('DOMContentLoaded', () => {
-    // --- MODAL HANDLING ---
-    window.openModal = function(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.add('show');
-            document.body.classList.add('modal-open');
-        }
-    }
+    fetchItems(currentPage);
 
-    window.closeModal = function(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.remove('show');
-            document.body.classList.remove('modal-open');
-        }
-    }
-
-    // Close modal with Escape key
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            const openModal = document.querySelector('.modal.show');
-            if (openModal) {
-                closeModal(openModal.id);
-            }
-        }
-    });
-    
-    // Close modal on backdrop click
-    document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('modal-backdrop')) {
-            const modal = e.target.closest('.modal');
-            if (modal) {
-                closeModal(modal.id);
-            }
-        }
-    });
-
-    // --- NOTIFICATIONS ---
-    window.showNotification = function(message, type = 'info') {
-        const notification = document.createElement('div');
-        const typeClasses = {
-            success: 'bg-green-500',
-            error: 'bg-red-500',
-            info: 'bg-blue-500'
-        };
-        const typeIcon = {
-            success: 'fa-check-circle',
-            error: 'fa-exclamation-circle',
-            info: 'fa-info-circle'
-        }
-        
-        notification.className = `fixed top-20 right-4 z-[1050] p-4 rounded-lg shadow-lg text-white ${typeClasses[type]} transition-all duration-300 transform translate-x-full`;
-        notification.innerHTML = `<i class="fas ${typeIcon[type]} mr-2"></i>${message}`;
-        document.body.appendChild(notification);
-
-        setTimeout(() => notification.classList.remove('translate-x-full'), 100);
-        setTimeout(() => {
-            notification.classList.add('translate-x-full');
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
-    }
-
-    // --- API & FORM HANDLING ---
-
-    // EDIT ITEM
-    document.querySelectorAll('.edit-form').forEach(form => {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const itemId = form.dataset.itemId;
-            const formData = new FormData(form);
-            
-            try {
-                const response = await fetch(`/update/${itemId}`, {
-                    method: 'POST',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-                    body: formData
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    const row = document.querySelector(`#row-${itemId}`);
-                    if (row) {
-                        row.querySelector('.item-name').textContent = result.name;
-                        row.querySelector('.item-description').textContent = result.description;
-                        row.querySelector('.item-price').textContent = '$' + result.price;
-                        row.querySelector('.item-th-level').textContent = 'Level ' + result.town_hall_level;
-                    }
-                    closeModal(`editModal${itemId}`);
-                    // No success message as requested, just close the modal.
-                } else {
-                    showNotification(result.message || 'Error updating item.', 'error');
-                }
-            } catch (error) {
-                showNotification('An error occurred while updating.', 'error');
-            }
-        });
-    });
-
-    // ADD ITEM
-    const addItemForm = document.getElementById('addItemForm');
-    if(addItemForm) {
-        addItemForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(addItemForm);
-            try {
-                const response = await fetch('/add', {
-                    method: 'POST',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-                    body: formData
-                });
-                const result = await response.json();
-                if (result.success) {
-                    closeModal('addItemModal');
-                    showNotification('Item added successfully!', 'success');
-                    setTimeout(() => window.location.reload(), 1000);
-                } else {
-                    showNotification(result.message || 'Error adding item.', 'error');
-                }
-            } catch (error) {
-                showNotification('An error occurred while adding the item.', 'error');
-            }
-        });
-    }
-
-    // DELETE ITEM (single)
-    window.deleteItem = async function(itemId) {
-        if (!confirm('Are you sure you want to delete this item?')) return;
-        
-        try {
-            const response = await fetch(`/delete/${itemId}`, {
-                method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-            });
-            const result = await response.json();
-            if (result.success) {
-                document.querySelector(`#row-${itemId}`).remove();
-                showNotification('Item deleted!', 'success');
-            } else {
-                showNotification(result.message || 'Error deleting item.', 'error');
-            }
-        } catch (error) {
-            showNotification('An error occurred while deleting.', 'error');
-        }
-    }
-
-    // DELETE ALL ITEMS
-    window.deleteAllItems = async function() {
-        try {
-            const response = await fetch('/delete-all', {
-                method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-            });
-            const result = await response.json();
-            if (result.success) {
-                closeModal('deleteAllModal');
-                showNotification('All items have been deleted.', 'success');
-                setTimeout(() => window.location.reload(), 1000);
-            } else {
-                showNotification(result.message || 'Error deleting all items.', 'error');
-            }
-        } catch (error) {
-            showNotification('An error occurred while deleting all items.', 'error');
-        }
-    }
-    
-    // --- MOBILE MENU ---
-    const menuButton = document.getElementById('mobile-menu-button');
-    const mobileMenu = document.getElementById('mobile-menu');
-    if(menuButton && mobileMenu) {
-        menuButton.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-        });
-    }
-
-    // --- SEARCH ---
     const searchInput = document.getElementById('searchInput');
-    if(searchInput) {
-        const tableBody = document.getElementById('itemsTableBody');
-        const rows = Array.from(tableBody.querySelectorAll('tr'));
+    searchInput.addEventListener('input', (e) => {
+        currentSearchQuery = e.target.value;
+        fetchItems(1, currentSearchQuery);
+    });
 
-        searchInput.addEventListener('input', () => {
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            rows.forEach(row => {
-                const textContent = row.textContent.toLowerCase();
-                row.style.display = textContent.includes(searchTerm) ? '' : 'none';
-            });
+    const addItemForm = document.getElementById('addItemForm');
+    addItemForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(addItemForm);
+        const response = await API.addItem(formData);
+        if (response.success) {
+            closeModal('addItemModal');
+            fetchItems(currentPage, currentSearchQuery);
+        } else {
+            alert(response.message);
+        }
+    });
+
+    document.getElementById('editModalContainer').addEventListener('submit', async (e) => {
+        if (e.target.classList.contains('edit-form')) {
+            e.preventDefault();
+            const itemId = e.target.dataset.itemId;
+            const formData = new FormData(e.target);
+            const response = await API.updateItem(itemId, formData);
+            if (response.success) {
+                closeModal(`editModal${itemId}`);
+                fetchItems(currentPage, currentSearchQuery);
+            } else {
+                alert(response.message);
+            }
+        }
+    });
+});
+
+async function fetchItems(page, query = '') {
+    currentPage = page;
+    currentSearchQuery = query;
+    const data = query ? await API.searchItems(query, page, pageSize) : await API.getItems(page, pageSize);
+    UI.renderItems(data.items);
+    UI.renderPagination(Math.ceil(data.total_items / pageSize), page, fetchItems);
+}
+
+function deleteItem(itemId) {
+    if (confirm('Are you sure you want to delete this item?')) {
+        API.deleteItem(itemId).then(response => {
+            if (response.success) {
+                fetchItems(currentPage, currentSearchQuery);
+            } else {
+                alert(response.message);
+            }
         });
     }
-});
+}
+
+function deleteAllItems() {
+    if (confirm('Are you sure you want to delete all items?')) {
+        API.deleteAllItems().then(response => {
+            if (response.success) {
+                fetchItems(1);
+            } else {
+                alert(response.message);
+            }
+        });
+    }
+}
+
+function openModal(modalId) {
+    document.getElementById(modalId).classList.add('show');
+    document.body.classList.add('modal-open');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('show');
+    document.body.classList.remove('modal-open');
+}
+
+function createEditModal(item) {
+    return `
+    <div id="editModal${item.id}" class="modal">
+        <div class="modal-backdrop" onclick="closeModal('editModal${item.id}')"></div>
+        <div class="modal-content bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4">
+            <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-edit mr-2 text-primary"></i>Edit Item #${item.id}
+                </h3>
+                <button onclick="closeModal('editModal${item.id}')" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <form class="edit-form space-y-6" data-item-id="${item.id}">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                            <input type="text" name="name" value="${item.name}" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Price</label>
+                            <input type="text" name="price" value="${item.price}" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                        <textarea name="description" rows="3" 
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">${item.description}</textarea>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Town Hall Level</label>
+                            <input type="text" name="town_hall_level" value="${item.town_hall_level}" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">King Level</label>
+                            <input type="text" name="king_level" value="${item.king_level}" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Queen Level</label>
+                            <input type="text" name="queen_level" value="${item.queen_level}" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Warden Level</label>
+                            <input type="text" name="warden_level" value="${item.warden_level}" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Champion Level</label>
+                            <input type="text" name="champion_level" value="${item.champion_level}" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Media URL 1</label>
+                            <input type="text" name="media1" value="${item.media.media1 || ''}" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Media URL 2 (Optional)</label>
+                            <input type="text" name="media2" value="${item.media.media2 || ''}" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Media URL 3 (Optional)</label>
+                        <input type="text" name="media3" value="${item.media.media3 || ''}" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                    </div>
+                    
+                    <div class="flex justify-end space-x-4 pt-4">
+                        <button type="button" onclick="closeModal('editModal${item.id}')" 
+                                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 flex items-center">
+                            <i class="fas fa-save mr-2"></i>Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    `;
+}
