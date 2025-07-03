@@ -1,13 +1,15 @@
-from fastapi import FastAPI, Request, Depends, Form, HTTPException, UploadFile, File, status
+from fastapi import FastAPI, Request, Depends, Form, HTTPException, UploadFile, File, status, Response, Cookie
 from fastapi.responses import JSONResponse, StreamingResponse, RedirectResponse
 import io
 import csv
 import json
 from fastapi.staticfiles import StaticFiles
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from typing import List, Optional
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.types import ASGIApp
 
 from . import crud, models, schemas
 from .database import SessionLocal, engine
@@ -19,6 +21,41 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="fastapi_crud/static"), name="static")
 
 templates = Jinja2Templates(directory="fastapi_crud/templates")
+
+# --- Password Protection --- 
+PASSWORD = "tuhin188"
+
+class LoginRequest(BaseModel):
+    password: str
+
+class AuthMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: ASGIApp):
+        super().__init__(app)
+        
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
+        if request.url.path.startswith('/static') or request.url.path in ['/login', '/password', '/json']:
+            return await call_next(request)
+
+        token = request.cookies.get("auth_token")
+        if not token or token != PASSWORD:
+            return RedirectResponse(url="/password")
+            
+        response = await call_next(request)
+        return response
+
+app.add_middleware(AuthMiddleware)
+
+@app.get("/password")
+def password_page(request: Request):
+    return templates.TemplateResponse("password.html", {"request": request})
+
+@app.post("/login")
+def login(request: LoginRequest, response: Response):
+    if request.password == PASSWORD:
+        response.set_cookie(key="auth_token", value=PASSWORD, max_age=86400) # 86400 seconds = 1 day
+        return {"message": "Login successful"}
+    else:
+        raise HTTPException(status_code=401, detail="Incorrect password")
 
 # Dependency
 def get_db():
@@ -195,13 +232,15 @@ async def upload_json(request: Request, db: Session = Depends(get_db)):
         return JSONResponse(status_code=500, content={"success": False, "message": "Server error.", "errors": [str(e)]})
 
 @app.get("/json")
-def get_all_items_as_json(db: Session = Depends(get_db)):
+def get_all_items_as_json(db: Session = Depends(get_db), key: str = None):
     """
     Public endpoint that returns all items as JSON.
     Any media field that is either `None` or an empty string ("") is omitted from the
     response.  If all three media fields are missing/empty for an item, the entire
     `media` object is left out of that item's JSON representation.
     """
+    if key != PASSWORD:
+        return RedirectResponse(url="/password")
     # Pull all items from DB (safeguard limit just in case)
     items = crud.get_items(db=db, skip=0, limit=1000)
 

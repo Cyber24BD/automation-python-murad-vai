@@ -3,6 +3,39 @@ const pageSize = 20;
 let currentSearchQuery = '';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Mobile menu toggle
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+
+    if (mobileMenuButton && mobileMenu) {
+        mobileMenuButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent click from bubbling to document
+            mobileMenu.classList.toggle('hidden');
+            const icon = mobileMenuButton.querySelector('i');
+            if (icon) {
+                if (mobileMenu.classList.contains('hidden')) {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                } else {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-times');
+                }
+            }
+        });
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!mobileMenu.classList.contains('hidden') && !mobileMenu.contains(e.target) && !mobileMenuButton.contains(e.target)) {
+                mobileMenu.classList.add('hidden');
+                const icon = mobileMenuButton.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                }
+            }
+        });
+    }
+    
     fetchItems(currentPage);
 
     const searchInput = document.getElementById('searchInput');
@@ -12,15 +45,32 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const addItemForm = document.getElementById('addItemForm');
-    addItemForm.addEventListener('submit', async (e) => {
+    const addItemError = document.getElementById('addItemError');
+
+        addItemForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(addItemForm);
-        const response = await API.addItem(formData);
-        if (response.success) {
-            closeModal('addItemModal');
-            fetchItems(currentPage, currentSearchQuery);
-        } else {
-            alert(response.message);
+
+        // Close the modal immediately.
+        closeModal('addItemModal');
+
+        // Submit the form in the background.
+        API.addItem(formData).then(response => {
+            if (response.success) {
+                // Refresh the list and show a success message.
+                fetchItems(currentPage, currentSearchQuery);
+                UI.showToast('Item added successfully!', 'success');
+                addItemForm.reset();
+            } else {
+                // Show an error message.
+                const message = response.message || 'An unexpected error occurred.';
+                UI.showToast(message, 'error');
+            }
+        });
+        
+        // Clear any previous error messages in the modal.
+        if (addItemError) {
+            addItemError.textContent = '';
         }
     });
 

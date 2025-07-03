@@ -1,39 +1,44 @@
+// Common fetch helper to include credentials and default headers
+const apiFetch = (url, options = {}) => {
+    const defaultHeaders = {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+    };
+    return fetch(url, {
+        credentials: 'same-origin',
+        ...options,
+        headers: {
+            ...defaultHeaders,
+            ...(options.headers || {}),
+        },
+    }).then(res => res.json());
+};
+
 const API = {
     getItems: async (page = 1, pageSize = 20) => {
-        const response = await fetch(`/api/items?page=${page}&page_size=${pageSize}`);
-        return response.json();
+        return apiFetch(`/api/items?page=${page}&page_size=${pageSize}`);
     },
     searchItems: async (query, page = 1, pageSize = 20) => {
-        const response = await fetch(`/api/search?query=${query}&page=${page}&page_size=${pageSize}`);
-        return response.json();
+        return apiFetch(`/api/search?query=${query}&page=${page}&page_size=${pageSize}`);
     },
     addItem: async (itemData) => {
-        const response = await fetch('/add', {
+        return apiFetch('/add', {
             method: 'POST',
             body: itemData,
         });
-        return response.json();
     },
     updateItem: async (itemId, itemData) => {
-        const response = await fetch(`/update/${itemId}`, {
+        return apiFetch(`/update/${itemId}`, {
             method: 'POST',
             body: itemData,
         });
-        return response.json();
     },
     deleteItem: async (itemId) => {
-        const response = await fetch(`/delete/${itemId}`, {
+        return apiFetch(`/delete/${itemId}`, {
             method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-            }
         });
-        return response.json();
     },
     deleteAllItems: async () => {
-        const response = await fetch('/delete-all', {
-            method: 'POST',
-        });
-        return response.json();
+        return apiFetch('/delete-all', { method: 'POST' });
     }
 };

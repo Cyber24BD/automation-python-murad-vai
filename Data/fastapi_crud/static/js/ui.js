@@ -13,7 +13,7 @@ const UI = {
                         <div class="truncate-custom item-description text-sm text-gray-600" title="${item.description}">${item.description}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="item-price text-sm font-semibold text-green-600">$${item.price}</span>
+                        <span class="item-price text-sm font-semibold text-green-600">${item.price}</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="item-th-level inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -66,5 +66,16 @@ const UI = {
         nextButton.disabled = currentPage === totalPages;
         nextButton.addEventListener('click', () => onPageClick(currentPage + 1));
         paginationContainer.appendChild(nextButton);
+    },
+    showToast: (message, type = 'success') => {
+        const toast = document.createElement('div');
+        toast.className = `fixed bottom-5 right-5 p-4 rounded-lg shadow-lg text-white ${
+            type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        }`;
+        toast.innerText = message;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
     }
 };
